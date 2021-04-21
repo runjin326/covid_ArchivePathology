@@ -1,0 +1,67 @@
+---
+title: "Codes for making figures for Archive of Pathology Paper"
+output: html_document
+author: "Run Jin"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R codes to generate figure
+# Note that the code does not include the data read in files - the files are stored in local directories. Therefore, this file would not be able to display in knitr.
+
+```{r setup}
+install.packages(tidyverse)
+library(tidyverse)
+```
+
+Read in the excel file and gathre information of target 1 and target 2 Ct values:
+
+```{r}
+NxTAG_lowP_gather <- NxTAG_lowP %>% gather(target_id, ct_values, c(Target1_Ct, Target2_Ct))
+NxTAG_cons_gather <- NxTAG_cons %>% gather(target_id, ct_values, c(Target1_Ct, Target2_Ct))
+abbott_lowP_gather <- abbott_lowP %>% gather(target_id, ct_values, c(Target1_Ct, Target2_Ct))
+abbott_cons_gather <- abbott_cons %>% gather(target_id, ct_values, c(Target1_Ct, Target2_Ct))
+```
+
+Factors are re-leveled to put "positive" first. New categories are added to mark those files for later combination:
+
+```{r}
+NxTAG_lowP_gather$NxTAG_results <- factor(NxTAG_lowP_gather$NxTAG_results, levels = c("Positive", "Negative"))
+NxTAG_cons_gather$NxTAG_results <- factor(NxTAG_cons_gather$NxTAG_results, levels = c("Positive", "Negative"))
+
+abbott_lowP_gather$Abbott_results <- factor(abbott_lowP_gather$Abbott_results, levels = c("Positive", "Negative"))
+abbott_cons_gather$Abbott_results <- factor(abbott_cons_gather$Abbott_results, levels = c("Positive", "Negative"))
+
+NxTAG_lowP_gather <- NxTAG_lowP_gather %>% mutate(category = "lowP")
+NxTAG_cons_gather <- NxTAG_cons_gather %>% mutate(category = "Cons")
+abbott_cons_gather <- abbott_cons_gather %>% mutate(category = "Cons")
+abbott_lowP_gather <- abbott_lowP_gather %>% mutate(category = "lowP")
+```
+
+Generate plots. 
+```{r}
+ggplot(NxTAG_lowP_gather, aes(x = NxTAG_results, y = ct_values, color = NxTAG_results)) + geom_boxplot() + geom_jitter(shape = 16, size = 2, position = position_jitter(0.2)) + facet_grid( . ~ target_id) + ylim(15,40) + scale_fill_manual(values=c("red", "blue")) +scale_color_manual(values=c("red", "blue")) + theme_bw()
+
+ggplot(NxTAG_cons_gather, aes(x = NxTAG_results, y = ct_values, color = NxTAG_results)) + geom_boxplot() + geom_jitter(shape = 16, size = 2, position = position_jitter(0.2)) + facet_grid( . ~ target_id) + ylim(15,40) + scale_fill_manual(values=c("red", "blue")) +scale_color_manual(values=c("red", "blue")) + theme_bw()
+
+ggplot(abbott_cons_gather, aes(x = Abbott_results, y = ct_values, color = Abbott_results)) + geom_boxplot() + geom_jitter(shape = 16, size = 2, position = position_jitter(0.2)) + facet_grid( . ~ target_id) + ylim(15,40) + scale_fill_manual(values=c("red", "blue")) +scale_color_manual(values=c("red", "blue")) + theme_bw()
+
+ggplot(abbott_lowP_gather, aes(x = Abbott_results, y = ct_values, color = Abbott_results)) + geom_boxplot() + geom_jitter(shape = 16, size = 2, position = position_jitter(0.2)) + facet_grid( . ~ target_id) + ylim(15,40) + scale_fill_manual(values=c("red", "blue")) +scale_color_manual(values=c("red", "blue")) + theme_bw()
+
+```
+
+Different datasets with the same testing methods are combined to generate a combined figure.
+```{r}
+NxTAG_all_gather <- bind_rows(NxTAG_lowP_gather, NxTAG_cons_gather)
+NxTAG_all_gather$full_cat <-paste(NxTAG_all_gather$NxTAG_results, NxTAG_all_gather$category, sep = "_")
+
+abbott_all_gather <- bind_rows(abbott_lowP_gather, abbott_cons_gather)
+abbott_all_gather$full_cat <-paste(abbott_all_gather$Abbott_results, abbott_all_gather$category, sep = "_")
+
+ggplot(abbott_all_gather, aes(x = Abbott_results, y = ct_values, color = full_cat))  + geom_boxplot() + geom_jitter(shape = 16, size = 2, position = position_jitter(0.2)) + facet_grid( . ~ target_id) + ylim(15, 40) + scale_fill_manual(values=c("red", "#037f51", "blue", "purple")) +scale_color_manual(values=c("red", "#037f51", "blue", "purple")) + theme_bw()
+
+ggplot(NxTAG_all_gather, aes(x = NxTAG_results, y = ct_values, color = full_cat))  + geom_boxplot() + geom_jitter(shape = 16, size = 2, position = position_jitter(0.2)) + facet_grid( . ~ target_id) + ylim(15, 40) + scale_fill_manual(values=c("red", "#037f51", "blue", "purple")) +scale_color_manual(values=c("red", "#037f51", "blue", "purple")) + theme_bw()
+```
+
