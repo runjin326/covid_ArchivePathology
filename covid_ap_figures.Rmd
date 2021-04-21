@@ -65,3 +65,18 @@ ggplot(abbott_all_gather, aes(x = Abbott_results, y = ct_values, color = full_ca
 ggplot(NxTAG_all_gather, aes(x = NxTAG_results, y = ct_values, color = full_cat))  + geom_boxplot() + geom_jitter(shape = 16, size = 2, position = position_jitter(0.2)) + facet_grid( . ~ target_id) + ylim(15, 40) + scale_fill_manual(values=c("red", "#037f51", "blue", "purple")) +scale_color_manual(values=c("red", "#037f51", "blue", "purple")) + theme_bw()
 ```
 
+Generate graphs for all the tested specimens by Jefferson, faceted by target 1 or 2 and makes a histogram:
+```{r}
+all_tested$count <- 1:nrow(all_tested)
+
+all_tested_gather <- all_tested %>% gather(target_id, ct_values, c(Target1_Ct, Target2_Ct))
+
+ggplot(all_tested_gather, aes(x = count, y = ct_values, color = target_id)) + geom_point() +scale_color_manual(values=c("red", "blue")) + theme_bw()
+
+ggplot(all_tested, aes(x = Target1_Ct, y = Target2_Ct)) +  ylim(10, 50) +  xlim(10, 50) + geom_point() + geom_rug() + theme_bw()
+
+ggplot(all_tested_gather, aes(x = ct_values, color = target_id)) + geom_histogram() + theme_bw() + facet_grid(target_id ~ .) + xlim(11, 49) + scale_fill_manual(values=c("grey", "orange")) +scale_color_manual(values=c("grey", "orange"))
+
+ggplot(all_tested_gather, aes(x = ct_values, color = target_id, fill = target_id)) + geom_histogram(binwidth = 1, center= 0.5) + theme_bw() + facet_grid(target_id ~ .)  + scale_fill_manual(values=c("#999999", "#FFCC66")) + scale_color_manual(values=c("#333333", "#FF6600")) + stat_bin(geom = "text", aes(label = stat(count)), binwidth = 1, center = 0.5, vjust = -1) + ylim(0, 130) + geom_vline(xintercept = 26.16, colour = "#999999", linetype = "dashed") + geom_vline(xintercept = 26.52, colour = "#FF6600", linetype = "dashed") + geom_vline(xintercept = 35, colour = 'black')
+```
+
