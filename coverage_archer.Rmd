@@ -1,0 +1,92 @@
+---
+title: "coverage_archer"
+author: "Run Jin"
+date: "4/20/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+install.packages("tidyverse")
+library(tidyverse)
+```
+
+
+#Visualize the quality distribution of individual samples
+
+Firstly, for each individual sample, choose the columns that we are interested in. And convert the quality score to log scales for better visualization.
+
+```{r}
+vcf_MP18_03111_S1_brain <- read.table(file = "clipboard", sep = '\t', header = TRUE)
+vcf_MP18_03111_S1_brain <- vcf_MP18_03111_S1_brain[, 1:15]
+vcf_MP18_03111_S1_brain <- vcf_MP18_03111_S1_brain %>% mutate(DP_log = log(DP, 10))
+vcf_MP18_03111_S1_brain <- vcf_MP18_03111_S1_brain %>% mutate(AF_log = log(100*AF, 10))
+vcf_MP18_03111_S1_brain <- vcf_MP18_03111_S1_brain %>% mutate(sample_id = 'MP18_03111')
+```
+
+Secondly, added an additional column called quality category based on the quality score (separation is based on previous experience). 
+
+```{r}
+vcf_all_brain_filter <- vcf_all_brain %>% filter(quality > 0)
+
+vcf_all_brain_filter1 <- vcf_all_brain_filter %>% filter(quality > 10000) %>% mutate(quality_category = 'high')
+
+vcf_all_brain_filter2 <- vcf_all_brain_filter %>% filter(quality > 5000 & quality <= 10000) %>% mutate(quality_category = 'medium_high')
+
+vcf_all_brain_filter3 <- vcf_all_brain_filter %>% filter(quality > 1000 & quality <= 5000) %>% mutate(quality_category = 'medium')
+
+vcf_all_brain_filter4 <- vcf_all_brain_filter %>% filter(quality > 100 & quality <= 1000) %>% mutate(quality_category = 'medium_low')
+
+vcf_all_brain_filter5 <- vcf_all_brain_filter %>% filter(quality < 100) %>% mutate(quality_category = 'low')
+
+vcf_all_brain_filter <- rbind(vcf_all_brain_filter1, vcf_all_brain_filter2, vcf_all_brain_filter3, vcf_all_brain_filter4, vcf_all_brain_filter5)
+ 
+```
+
+Relevel the factors and visualize the quality values:
+```{r}
+vcf_all_brain_filter$quality_category <- factor(vcf_all_brain_filter$quality_category, levels = c("low", "medium_low", "medium", "medium_high", "high"))
+
+ggplot(vcf_all_brain_filter, aes(x = DP_log, y = AF_log, color = quality_category)) + geom_point(size = 1) + facet_grid(  . ~ sample_id) + ylim(0, 2) + geom_hline(yintercept = log(2, 10), linetype = "dashed", color = "red") + geom_hline(yintercept = log(5, 10), linetype = "dashed", color = "black") 
+```
+
+# This is the code used to generated coverage files for 10 good specimens for 2 different panels
+
+This following code block is NOT R script. It is the command lines for generating coverage files in the terminal. This is a sample script - all files needed to be run separated. 
+
+```{r}
+bedtools coverage -a brain_cov.bed -b MP19-02197_S7_R1_001.preprocessed.bam -d > MP19_02197_coverage.bed
+
+```
+
+After all the coverage files are generated using bedtools. We use the sample sheets (with all the specimens) to process them collectively. An ID  is added so that we can group them togehter later (we want to look at each amplicon and figure out how the coverage looks across 10 specimens). 
+
+```{r}
+library(scales)
+sampleSheet <- read.table(file = "SampleSheet.txt", header = FALSE, sep = "\t")
+
+t<-list()
+p<-list()
+for (i in seq(1,nrow(sampleSheet))) {
+t[[i]] <- read.table(file = paste0(sampleSheet[i,1], "_coverage.bed"), header = FALSE, sep = "\t")
+t[[i]] <- t[[i]] %>% separate(col = V4, into = c('gene', 'exon'), sep = "_")
+t[[i]]$id_rank <- paste(t[[i]]$gene, t[[i]]$V2, t[[i]]$exon, sep = "_")
+t[[i]] <- t[[i]] %>% mutate(sample = paste0(sampleSheet[i,1])) %>% mutate(log10_count = log(V6, 10))
+t[[i]]$final <- paste(t[[i]]$id_rank, t[[i]]$sample, sep = "_")
+}
+
+run_combine_brain <- bind_rows(t) %>% arrange(final)
+
+```
+
+Pdf files are generated using the region file, which define how many amplicons to be added to each pdf page.
+```{r}
+for (i in seq(1,nrow(regionSheet))) {
+n1 <- regionSheet[i,1]
+n2 <- regionSheet[i,2]
+p[[i]] <- ggplot()  + geom_point(data = run_combine_brain[n1:n2, ], aes(x = final, y = V5, color = log10_count)) + scale_color_gradient(low="red", high="green", limits = c(2.3, 3.3), oob = squish) + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+}
+print(p)
+dev.off()
+```
+
