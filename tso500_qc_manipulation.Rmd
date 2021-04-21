@@ -1,0 +1,80 @@
+---
+title: "tso500_validation_qc"
+author: "Run Jin"
+date: "4/20/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# TSO500 TruSight Oncology Panel QC Interrogation
+
+Read in the vcf file for each individual samples - this is just a sample script. To do batch import and manipulation, we can use a vector with all samples names and use a for loop.
+
+```{r}
+Validation1 <- read.table(file = "clipboard", header = FALSE, sep = '\t') %>% filter(V5 != '.') %>% separate(col = V10, sep = "\\:", into = c("GT", "GQ", "AD", "DP", "VF", "NL", "SB", "NC", "US", "AQ", "LQ")) %>% separate(col = AD, sep = ",", into = c("ref_count", "alt_count"))
+
+```
+
+#Visualizaion without any filtering
+Selete columns that we are interested in and gather info for later visualization. We are interested in log of read depth and the AQ quality score. Again, this is just showing codes for one sample. Batch manipulation possible.
+
+```{r}
+Validation7 <- Validation7[, c(1:2, 4:7, 11:15, 17, 18, 20, 21)] %>% mutate(sample = 'Validation7') %>% mutate(log_DP = log(DP, 10))
+rm(list = apropos("Validation7_"))
+rm(list = apropos("filtered"))
+
+Valid_run1_nofilter <- rbind(Validation1, Validation2, Validation3, Validation4, Validation5, Validation6, Validation7)
+rm(list = apropos("Validation_"))
+
+Valid_run1_nofilter <- Valid_run1_nofilter %>% filter(V5 != '.')
+Valid_run1_nofilter %>% ggplot(aes(x = log_DP, y = VF, color = sample)) + geom_point(alpha = 0.1)  + facet_grid(.~V7) + geom_hline(yintercept = 0.05, color = 'black') + geom_vline(xintercept = 2.88, color = 'black') + geom_vline(xintercept = 2.3, color = 'blue')+ geom_vline(xintercept = 2, color = 'red')  + theme_bw()
+
+ggplot(Valid_run1_nofilter, aes(x = AQ, y = VF, color = sample)) + geom_point(alpha = 0.1)  + facet_grid(.~V7) + geom_hline(yintercept = 0.05, color = 'black') + geom_vline(xintercept = 60, color = 'blue')+ geom_vline(xintercept = 20, color = 'red') + theme_bw()
+
+```
+
+#Visualization after minimal filtering on the QC files
+Selete columns that we are interested in, do some filtering and data cleanup for later visualization. Again, this is just showing codes for one sample. Batch manipulation possible.
+
+```{r}
+
+Validation1[cols.num] <- sapply(Validation1[cols.num],as.numeric)
+Validation1 <- Validation1[, c(1:2, 4:7, 11:15, 17, 18, 20, 21)] %>% filter(AQ>=20) %>% filter(LQ>=20) %>% filter(DP >=100)
+
+summary(Validation1)
+
+Validation1_gather <- Validation1 %>% gather(qs_cat, quality_score, c(AQ, LQ, SB, NC, GQ)) %>% mutate(sample = 'Validation1')
+```
+
+Combine all the files together and visualize them.
+
+```{r}
+Valid_run1<- rbind(Validation1, Validation2, Validation3, Validation4, Validation5, Validation6, Validation7)
+
+Valid_run1 %>% filter(qs_cat == 'AQ') %>% ggplot(aes(x = quality_score, y = VF, color = sample)) + geom_point(alpha = 0.3)  + facet_grid(.~V7) + theme_bw()
+
+```
+
+
+We also want to see the coverage for each amplicon (specified by the manifest file which we read in before). Here we are using Validation7 (the 7th of the samples as an example) but this can be bulk treated.
+
+```{r}
+for (i in seq(2,nrow(manifest_TSO500))) {
+chromosome <- manifest_TSO500[i,2]
+start <- manifest_TSO500[i,3]
+end <- manifest_TSO500[i,4]
+roi <- manifest_TSO500[i,1]
+filtered <- Validation7 %>% filter(V1 == chromosome & V2 >= start & V2 <= end) 
+filtered_DP <- filtered$DP
+min <- min(filtered$DP)
+max <- max(filtered$DP)
+mean <- mean(filtered$DP)
+Validation7_new <- data.frame(roi, chromosome, start, end, min, max, mean)
+Validation7_amp <- rbind(Validation7_amp, Validation7_new)} 
+
+Validation7_amp %>% write.table(file = 'Validation7_amp.txt', append = FALSE, quote = FALSE, col.names = TRUE, row.names = FALSE, sep = '\t')
+```
+
