@@ -1,0 +1,9 @@
+#This is used to map raw fastq files to SARS-CoV-2 genome
+#Sample code:
+bowtie2 -x ../NC_045512 -q -1 fastq/20210524-CovidSeq1-S1_S1_L001_R1_001.fastq.gz -2 fastq/20210524-CovidSeq1-S1_S1_L001_R2_001.fastq.gz -S mapped/20210524-CovidSeq1-S1_S1.sam 
+
+#batch script as follows:
+
+awk '{print "bowtie2 -x ../NC_045512 -q -1 fastq/"$1"_R1_001.fastq.gz -2 fastq/"$1"_R2_001.fastq.gz -S mapped/"$1".sam 2> log_files/bowtie_log_"$1".txt"}' ./meta/SRX.list > scripts/bowtie2_covidSeq.sh
+chmod 755 ./scripts/bowtie2_covidSeq.sh
+nohup ./scripts/bowtie2_covidSeq.sh > log_files/bowtie2_covidSeq.log &
