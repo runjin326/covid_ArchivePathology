@@ -1,6 +1,6 @@
 #This is used to map raw fastq files to SARS-CoV-2 genome
 #Sample code:
-bowtie2 -x ../NC_045512 -q -1 fastq/20210524-CovidSeq1-S1_S1_L001_R1_001.fastq.gz -2 fastq/20210524-CovidSeq1-S1_S1_L001_R2_001.fastq.gz -S mapped/20210524-CovidSeq1-S1_S1.sam 
+bowtie2 -x ../NC_045512_INDEX -q -1 fastq/20210524-CovidSeq1-S1_S1_L001_R1_001.fastq.gz -2 fastq/20210524-CovidSeq1-S1_S1_L001_R2_001.fastq.gz -S mapped/20210524-CovidSeq1-S1_S1.sam 
 
 #batch script as follows:
 
