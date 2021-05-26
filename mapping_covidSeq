@@ -4,6 +4,6 @@ bowtie2 -x ../NC_045512 -q -1 fastq/20210524-CovidSeq1-S1_S1_L001_R1_001.fastq.g
 
 #batch script as follows:
 
-awk '{print "bowtie2 -x ../NC_045512 -q -1 fastq/"$1"_R1_001.fastq.gz -2 fastq/"$1"_R2_001.fastq.gz -S mapped/"$1".sam 2> log_files/bowtie_log_"$1".txt"}' ./meta/SRX.list > scripts/bowtie2_covidSeq.sh
+awk '{print "bowtie2 -x ../NC_045512_INDEX -q -1 fastq/"$1"_R1_001.fastq.gz -2 fastq/"$1"_R2_001.fastq.gz -S mapped/"$1".sam 2> log_files/bowtie_log_"$1".txt"}' ./meta/SRX.list > scripts/bowtie2_covidSeq.sh
 chmod 755 ./scripts/bowtie2_covidSeq.sh
 nohup ./scripts/bowtie2_covidSeq.sh > log_files/bowtie2_covidSeq.log &
