@@ -7,3 +7,26 @@ bowtie2 -x ../NC_045512_INDEX -q -1 fastq/20210524-CovidSeq1-S1_S1_L001_R1_001.f
 awk '{print "bowtie2 -x ../NC_045512_INDEX -q -1 fastq/"$1"_R1_001.fastq.gz -2 fastq/"$1"_R2_001.fastq.gz -S mapped/"$1".sam 2> log_files/bowtie_log_"$1".txt"}' ./meta/SRX.list > scripts/bowtie2_covidSeq.sh
 chmod 755 ./scripts/bowtie2_covidSeq.sh
 nohup ./scripts/bowtie2_covidSeq.sh > log_files/bowtie2_covidSeq.log &
+
+#next step will be to generate bam files from the sam files 
+#sort the bam files 
+#and index the bam files 
+
+#sample code for doing the indexing and mapping:
+
+samtools view -S -b mapped/20210524-CovidSeq1-S1_S1.sam > ./bam_files/20210524-CovidSeq1-S1_S1.bam
+samtools sort ./bam_files/20210524-CovidSeq1-S1_S1.bam -o ./sorted_bam/20210524-CovidSeq1-S1_S1.sorted.bam
+samtools index ./sorted_bam/20210524-CovidSeq1-S1_S1.sorted.bam
+
+Generate respectiev batch scripts for that:
+awk '{print "samtools view -S -b mapped/"$1".sam > ./bam_files/"$1".bam"}' ./meta/SRX.list > scripts/samtobam.sh
+awk '{print "samtools sort ./bam_files/"$1".bam -o ./sorted_bam/"$1".sorted.bam"}' ./meta/SRX.list > scripts/sort_bam.sh
+awk '{print "samtools index ./sorted_bam/"$1".sorted.bam"}' ./meta/SRX.list > scripts/index_bam.sh
+
+chmod 755 ./scripts/samtobam.sh
+chmod 755 ./scripts/sort_bam.sh
+chmod 755 ./scripts/index_bam.sh
+
+nohup ./scripts/samtobam.sh > log_files/samtobamq.log &
+nohup ./scripts/sort_bam.sh > log_files/sort_bam.log &
+nohup ./scripts/index_bam.sh > log_files/index_bam.log &
